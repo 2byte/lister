@@ -11,13 +11,16 @@
     "default_icon": "assets/surfer-24.png",
     "default_popup": "popup.html"
   },
+  "background": {
+    "scripts": ["surfer.js", "eventPage.js"],
+    "persistent": true
+  },
   "content_scripts":[{
     "matches": ["http://www.collarspace.com/*"],
     "js": [
       "jquery.min.js",
       "jquery.scrollTo.min.js",
-      "surfer.js",
-      "profileView.js"
+      "surfer.js"
     ]
   }],
   "permissions": [

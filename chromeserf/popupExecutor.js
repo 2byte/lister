@@ -1,43 +1,31 @@
 (function () {
 
-    var profileRows = [];
+    var profiles = [];
 
     function collectUsers() {
         $(document).ready(function () {
-            var selectors = [
-                '.HeadDF',
-                '.HeadDM',
-                '.HeadSM'
-            ];
-
-            selectors.forEach(function (item) {
-                var profiles = $(item).find('a[href*="/personals"]');
-
-                profiles.each(function (index, profile) {
-                    profileRows.push(profile.href);
+            var profileRows = $('.row')
+                .css({
+                    'font': 3,
+                    'face': 'Trebuchet MS, Arial, Helvetica, sans-serif'
+                }).find('a').each(function (item) {
+                    profiles.push(this.href);
                 });
-
-            });
         });
     }
 
-    function sendMessagePoup () {
-        if (profileRows) {
-            chrome.runtime.sendMessage({popupExecutor: profileRows}, function (response) {
+    function sendMessagePopup (users) {
+        if (users) {
+            chrome.runtime.sendMessage({type: 'popupExecutor', users: users}, function (response) {
 
-                console.log('Visited', response);
-
-                var nextLink = $('a[title*="Show the next page"]');
-
-                if (nextLink) {
-                    profileRows = [];
-                    nextLink[0].click();
-                }
+                console.log('Send users:', response);
             });
+        } else {
+            console.log('Not users');
         }
     }
 
     collectUsers();
-    sendMessagePoup();
+    sendMessagePopup(profiles);
 
 })();

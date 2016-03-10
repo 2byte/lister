@@ -1,3 +1,4 @@
+'use strict';
 
 /**
  * Surfer by profile pages
@@ -5,8 +6,25 @@
  * @constructor
  */
 function Surfer() {
-
+    this.tabs = [];
+    this.stoppedWork = false;
+    this.windowsComplete = false;
+    this.countViewProfile = 0;
 }
+
+Surfer.prototype.run = function (tabId) {
+
+    return new Promise((resolve, reject) => {
+        chrome.tabs.executeScript(tabId, {
+            file: 'popupExecutor.js'
+        }, () => {
+            console.log('Script runned.');
+
+            resolve();
+        });
+    });
+
+};
 
 Surfer.prototype.getTabByUrl = function (url) {
     return new Promise(function () {
@@ -24,7 +42,7 @@ Surfer.prototype.getTabByUrl = function (url) {
     });
 };
 
-Surfer.prototype.createTab = function (url, cb) {
+Surfer.prototype.createTab = function (url) {
     var self = this;
 
     return new Promise(function (resolve, reject) {
@@ -39,13 +57,19 @@ Surfer.prototype.createTab = function (url, cb) {
 
                         chrome.tabs.executeScript(tab.id, {
                             file: 'profileView.js'
+                        }, () => {
+
+                            // Auto close tab after
+                            chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tabUpdated) {
+                                if (tabId == tab.id && changeInfo.status == 'complete') {
+                                    self.countViewProfile++;
+
+                                    chrome.tabs.remove(tab.id);
+                                }
+                            });
                         });
 
                         resolve(tab);
-                    } else {
-                        setTimeout(function () {
-                            reject("Limit rate executed 2000ms");
-                        }, 2000);
                     }
                 }
             });
@@ -58,24 +82,53 @@ Surfer.prototype.openWindows = function (urls) {
 
     var self = this;
     var urlCount = urls.length;
+    var stoppedWork = false;
 
-    var windowCreator = function (index) {
-        if (!index) index = 0;
+    return new Promise(function (resolve, reject) {
 
-        if (index < urlCount) {
-            return self.createTab(urls[index]).then(function (tab) {
-                // Auto closed tab
-                //chrome.tabs.remove(tab.id);
+        var currentUrl = 0;
 
-                console.log('Worked ', index, 'url', urls[index]);
+        var urlOpen = function () {
+            if (currentUrl < urlCount) {
+                self.createTab(urls[currentUrl]).then(function (tab) {
 
-                index++;
-                return windowCreator(index);
-            });
-        } else {
-            return Promise.reject({done: true});
-        }
-    };
+                    self.tabs.push({id: tab.id});
 
-    return windowCreator();
+                    currentUrl++;
+
+                    if (!self.stoppedWork) {
+                        urlOpen();
+                    } else {
+                        resolve();
+                    }
+
+                }).catch(function (err) {
+                    console.log(err);
+                });
+            } else {
+                self.windowsComplete = true;
+
+                resolve();
+            }
+        };
+
+        urlOpen();
+
+    });
+};
+
+Surfer.prototype.goNextPage = function (tabId) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.executeScript(tabId, {
+            code: `location.href = $('a.console[title*="Show the next page of profiles"]:eq(0)').attr('href');`
+        }, (res) => {
+            resolve(res);
+        });
+    });
+};
+
+Surfer.prototype.stopWork = function () {
+    this.stoppedWork = true;
+
+    console.log('Surfer stopped');
 };
