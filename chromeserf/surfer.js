@@ -128,6 +128,7 @@ Surfer.prototype.goNextPage = function (tabId) {
 };
 
 Surfer.prototype.stopWork = function () {
+    this.windowsComplete = false;
     this.stoppedWork = true;
 
     console.log('Surfer stopped');
