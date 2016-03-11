@@ -67,6 +67,9 @@ Surfer.prototype.createTab = function (url) {
                                     chrome.tabs.remove(tab.id);
                                 }
                             });
+
+                            // Send increment view profile
+                            chrome.runtime.sendMessage({type: 'increment-view-profile', count: self.countViewProfile}, response => {});
                         });
 
                         resolve(tab);
@@ -78,10 +81,10 @@ Surfer.prototype.createTab = function (url) {
     });
 };
 
-Surfer.prototype.openWindows = function (urls) {
+Surfer.prototype.openWindows = function (users) {
 
     var self = this;
-    var urlCount = urls.length;
+    var urlCount = users.length;
     var stoppedWork = false;
 
     return new Promise(function (resolve, reject) {
@@ -90,9 +93,11 @@ Surfer.prototype.openWindows = function (urls) {
 
         var urlOpen = function () {
             if (currentUrl < urlCount) {
-                self.createTab(urls[currentUrl]).then(function (tab) {
+                self.createTab(users[currentUrl].url).then(function (tab) {
 
                     self.tabs.push({id: tab.id});
+
+                    console.log('Opened user', users[currentUrl].username);
 
                     currentUrl++;
 
@@ -118,11 +123,19 @@ Surfer.prototype.openWindows = function (urls) {
 };
 
 Surfer.prototype.goNextPage = function (tabId) {
+    this.tabs = [];
+
     return new Promise((resolve, reject) => {
         chrome.tabs.executeScript(tabId, {
             code: `location.href = $('a.console[title*="Show the next page of profiles"]:eq(0)').attr('href');`
         }, (res) => {
-            resolve(res);
+            chrome.tabs.update(tabId, {url: `http://www.collarspace.com${res[0]}`}, tab => {
+                chrome.tabs.onUpdated.addListener((currentTabId, changeInfo, tabUpdated) => {
+                    if (currentTabId == tabId && changeInfo.status == 'complete') {
+                        resolve();
+                    }
+                });
+            });
         });
     });
 };
@@ -130,6 +143,21 @@ Surfer.prototype.goNextPage = function (tabId) {
 Surfer.prototype.stopWork = function () {
     this.windowsComplete = false;
     this.stoppedWork = true;
+    this.tabs = [];
 
     console.log('Surfer stopped');
+};
+
+Surfer.prototype.test = function () {
+    chrome.tabs.executeScript(23, {
+        code: `location.href = $('a.console[title*="Show the next page of profiles"]:eq(0)').attr('href');`
+    }, (res) => {
+        chrome.tabs.update(23, {url: `http://www.collarspace.com${res[0]}`}, tab => {
+            chrome.tabs.onUpdated.addListener((tabId, changeInfo, tabUpdated) => {
+                if (tabId == 23 && changeInfo.status == 'complete') {
+                    console.log('Window complete');
+                }
+            });
+        });
+    });
 };

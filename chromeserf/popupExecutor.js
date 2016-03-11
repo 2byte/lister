@@ -9,7 +9,10 @@
                     'font': 3,
                     'face': 'Trebuchet MS, Arial, Helvetica, sans-serif'
                 }).find('a').each(function (item) {
-                    profiles.push(this.href);
+                    profiles.push({
+                        url: this.href,
+                        username: this.innerText
+                    });
                 });
         });
     }

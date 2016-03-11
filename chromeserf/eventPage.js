@@ -29,13 +29,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                         Surf.run(siteTabId);
                     });
                 }
+
             }).catch(err => console.log(err));
-
-        sendResponse('OK');
-    }
-
-    // Count view profile
-    if (message.type == 'increment-view-profile') {
 
         sendResponse('OK');
     }
